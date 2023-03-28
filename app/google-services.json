@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "520628669926",
+    "project_id": "gpstask-51e72",
+    "storage_bucket": "gpstask-51e72.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:520628669926:android:8f7cd386fb97c34bceda27",
+        "android_client_info": {
+          "package_name": "com.example.gpstask"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "520628669926-062ftt96eemprhma4a6kgbmdbeo2rhj3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzlce4Ea1s6EQyMyxygDn3l9snMuAsa6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "520628669926-062ftt96eemprhma4a6kgbmdbeo2rhj3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
