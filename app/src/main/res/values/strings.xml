@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">GpsTask</string>
+    <string name="app_name">TrackMe</string>
     <string-array name="interval_options">
         <item>1 minute</item>
         <item>5 minutes</item>

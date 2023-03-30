@@ -58,48 +58,49 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_LOCATION = 123;
     private static final int GPS_CHECK_INTERVAL = 5000; // Check every 5 seconds
-    private static  int UPDATE_INTERVAL = 60000; // Update every 1 minute
+    private static int UPDATE_INTERVAL = 60000; // Update every 1 minute
     private long lastUpdateTime = 0;
 
     private TextView latitudeTextView;
     private TextView longitudeTextView;
     private TextView speedTextView;
-   private LocationManager locationManager;
-  //  private DatabaseReference FirbaseDatabase;
+    private LocationManager locationManager;
+    //  private DatabaseReference FirbaseDatabase;
     private String phoneNo;
+    private long updateInterval;
     private RadioGroup timeintervaloption;
-    private RadioButton radioButton5,radioButton15,radioButton10,radioButtonoff,radioButton60;
+    private RadioButton radioButton5, radioButton15, radioButton10, radioButtonoff, radioButton60;
     private Intent serviceIntent;
-    private  SharedPreferences sharedPreferences;
+    private SharedPreferences sharedPreferences;
 
     private Handler handler = new Handler();
     private MediaType mediaType;
-   // private RequestBody body;
+    // private RequestBody body;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        Intent intent = new Intent(this, LocationService.class);
+        startService(intent);
         latitudeTextView = (TextView) findViewById(R.id.lattitude);
         longitudeTextView = (TextView) findViewById(R.id.longitutde);
         speedTextView = (TextView) findViewById(R.id.speedText);
         TextView urphoneno = findViewById(R.id.ContactNumber);
         // Get an instance of SharedPreferences
-         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
         // Get the saved "phoneno" value from SharedPreferences
-         phoneNo = sharedPreferences.getString("phone_number", "");
-        urphoneno.setText("Tracking no is:"+phoneNo);
+
         //Radio Button
-        timeintervaloption=findViewById(R.id.timeinterval);
-        radioButton5=findViewById(R.id.radiobutton5);
-        radioButton10=findViewById(R.id.radiobutton10);
-        radioButton15=findViewById(R.id.radiobutton15);
-        radioButtonoff=findViewById(R.id.radiobuttonoff);
-        EditText phoneno=findViewById(R.id.phoneno);
-        Button submit=findViewById(R.id.submit);
+        timeintervaloption = findViewById(R.id.timeinterval);
+        radioButton5 = findViewById(R.id.radiobutton5);
+        radioButton10 = findViewById(R.id.radiobutton10);
+        radioButton15 = findViewById(R.id.radiobutton15);
+        radioButtonoff = findViewById(R.id.radiobuttonoff);
+        EditText phoneno = findViewById(R.id.phoneno);
+        Button submit = findViewById(R.id.submit);
         // Set the default option to 15 min
 
         final String[] selectedoption = {sharedPreferences.getString("selectedoption", "15")};
@@ -108,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         switch (selectedoption[0]) {
             case "5":
                 radioButton5.setChecked(true);
-                UPDATE_INTERVAL = 300000;
+                UPDATE_INTERVAL = 100000;
                 break;
             case "10":
                 radioButton10.setChecked(true);
@@ -139,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
                 switch (selectedId) {
                     case R.id.radiobutton5:
                         selectedoption[0] = "5";
-                        UPDATE_INTERVAL = 300000;
+                        UPDATE_INTERVAL = 100000;
                         break;
                     case R.id.radiobutton10:
                         selectedoption[0] = "10";
@@ -156,15 +157,22 @@ public class MainActivity extends AppCompatActivity {
 
                 //Save the selected radio button value and phone number to SharedPreferences
                 editor.putString("selectedoption", selectedoption[0]);
+                editor.putLong("updateInterval", UPDATE_INTERVAL);
                 editor.putString("phone_number", phone);
                 editor.apply();
-
+                //updateInterval = sharedPreferences.getLong("updateInterval", 900000);
+                // String lala= Long.toString(updateInterval);
+                //Toast.makeText(MainActivity.this, lala, Toast.LENGTH_SHORT).show();
                 Toast.makeText(MainActivity.this, phone + " Interval: " + selectedoption[0], Toast.LENGTH_SHORT).show();
             }
         });
 
         //Toast.makeText(this,"Your Location will update in every"+ String.valueOf(UPDATE_INTERVAL)+"m/s", Toast.LENGTH_SHORT).show();
-
+        phoneNo = sharedPreferences.getString("phone_number", "");
+        updateInterval = sharedPreferences.getLong("updateIntervals", 900000);
+        //String lala= Long.toString(updateInterval);
+        //Toast.makeText(this, lala, Toast.LENGTH_SHORT).show();
+        urphoneno.setText("Tracking no is:" + phoneNo);
 /*
         String requestBodyString = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
                 "Content-Disposition: form-data; name=\"lt\"\r\n\r\n" +
@@ -188,8 +196,7 @@ public class MainActivity extends AppCompatActivity {
         startService(serviceIntent);*/
 
 
-
-      locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -202,6 +209,7 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra("phone_number", phoneNo);*/
         //startservice();
     }
+
 
     private Runnable runnable = new Runnable() {
         @Override
@@ -264,8 +272,49 @@ public class MainActivity extends AppCompatActivity {
                     longitudeTextView.setText("Longitude: " + longitude);
                     speedTextView.setText("Speed: " + speed + " m/s");
                     //Toast.makeText(MainActivity.this, phoneNo, Toast.LENGTH_SHORT).show();
+                     Handler handler = new Handler();
+                    Runnable runnable = new Runnable() {
+                        @Override
+                        public void run() {
+
+                            Toast.makeText(MainActivity.this, "Sending", Toast.LENGTH_LONG).show();
+                            RequestBody body = new FormBody.Builder()
+                                    .add("ph", phoneNo)
+                                    .add("lt", Double.toString(latitude))
+                                    .add("lg", Double.toString(longitude))
+                                    .add("sp", Float.toString(speed))
+                                    .add("dv", "dvValue")
+                                    .build();
+                            // Build request
+                            Request request = new Request.Builder()
+                                    .url("https://api.tranzol.com/apiv1/PostLocation")
+                                    .post(body)
+                                    .addHeader("content-type", "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW")
+                                    .addHeader("clientid", "TRANZOLGPS")
+                                    .addHeader("clientsecret", "TRANZOLBO436535345SS2238RC")
+                                    .build();
+
+                            // Send request asynchronously
+                            OkHttpClient client = new OkHttpClient();
+                            client.newCall(request).enqueue(new Callback() {
+                                @Override
+                                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                                    // Handle successful response
+                                }
+
+                                @Override
+                                public void onFailure(Call call, IOException e) {
+                                    // Handle error
+                                }
+
+                            });
+                            handler.postDelayed(this, updateInterval);
+                        }
+                    };
+                    handler.postDelayed(runnable, updateInterval);
                     // Update api every UPDATE_INTERVAL milliseconds
-                    if (System.currentTimeMillis() % UPDATE_INTERVAL == 0  || lastUpdateTime == 0){
+
+     if (System.currentTimeMillis() - lastUpdateTime >= UPDATE_INTERVAL || lastUpdateTime == 0){
                         lastUpdateTime = System.currentTimeMillis();
                         // Create location data object
                        // LocationModel locationData = new LocationModel(latitude, longitude, speed);
@@ -274,38 +323,9 @@ public class MainActivity extends AppCompatActivity {
                        // String phoneNumber = getIntent().getStringExtra("phone_number");
                         //Toast.makeText(MainActivity.this, phoneNo, Toast.LENGTH_SHORT).show();
                         // Build request body
-                        RequestBody body = new FormBody.Builder()
-                                .add("ph", phoneNo)
-                                .add("lt", Double.toString(latitude))
-                                .add("lg", Double.toString(longitude))
-                                .add("sp", Float.toString(speed))
-                                .add("dv", "dvValue")
-                                .build();
 
-                        // Build request
-                        Request request = new Request.Builder()
-                                .url("https://api.tranzol.com/apiv1/PostLocation")
-                                .post(body)
-                                .addHeader("content-type", "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW")
-                                .addHeader("clientid", "TRANZOLGPS")
-                                .addHeader("clientsecret", "TRANZOLBO436535345SS2238RC")
-                                .build();
-
-                        // Send request asynchronously
-                        OkHttpClient client = new OkHttpClient();
-                        client.newCall(request).enqueue(new Callback() {
-                            @Override
-                            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                                // Handle successful response
-                            }
-
-                            @Override
-                            public void onFailure(Call call, IOException e) {
-                                // Handle error
-                            }
-
-                        });
                     }
+
                 }
             });
 

@@ -5,6 +5,8 @@ package com.example.gpstask;
 import static android.content.Intent.getIntent;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -13,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.Manifest;
@@ -41,27 +44,52 @@ public class LocationService extends Service {
 
     private static final int UPDATE_INTERVAL = 60000; // Update every 1 minute
     private LocationManager locationManager;
-    //private DatabaseReference firebaseDatabase;
     private String phoneNumber;
     private Handler handler = new Handler();
     private Runnable locationRunnable = new LocationRunnable();
-      private OkHttpClient client;
+    private OkHttpClient client;
+    private static final int NOTIFICATION_ID = 1;
+    private static final String NOTIFICATION_CHANNEL_ID = "location_service_channel";
+    private NotificationManager notificationManager;
     @Override
     public void onCreate() {
         super.onCreate();
-      //  firebaseDatabase = FirebaseDatabase.getInstance().getReference();
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         phoneNumber = sharedPreferences.getString("phone_number", "");
-         client = new OkHttpClient();
+
+        client = new OkHttpClient();
+        // Create the notification channel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    "Location Service Channel",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
 
     }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // Create the notification
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setContentTitle("Location Service")
+                .setContentText("Location service is running in the background")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setOngoing(true);
+
+        Notification notification = builder.build();
+
+        startForeground(NOTIFICATION_ID, notification);
+
+        // Start the location updates
         handler.postDelayed(locationRunnable, UPDATE_INTERVAL);
         return START_STICKY;
     }
+
 
     @Override
     public void onDestroy() {
@@ -82,16 +110,16 @@ public class LocationService extends Service {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
             float speed = location.getSpeed();
-            Toast.makeText(LocationService.this,phoneNumber, Toast.LENGTH_SHORT).show();
-            String lt= Double.toString(latitude) ;
-            String lg= Double.toString(longitude);
-            String sp=Float.toString(speed);
+            Toast.makeText(LocationService.this, "Location"+phoneNumber, Toast.LENGTH_SHORT).show();
+            String lt = Double.toString(latitude);
+            String lg = Double.toString(longitude);
+            String sp = Float.toString(speed);
             RequestBody body = new FormBody.Builder()
-                    .add("ph",phoneNumber)
-                    .add("lt",lt)
-                    .add("lg",lg)
-                    .add("sp",sp)
-                    .add("dv","dv")
+                    .add("ph", phoneNumber)
+                    .add("lt", lt)
+                    .add("lg", lg)
+                    .add("sp", sp)
+                    .add("dv", "dv")
                     .build();
             Request request = new Request.Builder()
                     .url("https://api.tranzol.com/apiv1/PostLocation")
@@ -111,21 +139,18 @@ public class LocationService extends Service {
                     // Handle the error
                 }
             });
-           // firebaseDatabase.child(phoneNumber).child("latitude").setValue(latitude);
-          //  firebaseDatabase.child(phoneNumber).child("longitude").setValue(longitude);
-           // firebaseDatabase.child(phoneNumber).child("speed").setValue(speed);
         }
     };
 
     private class LocationRunnable implements Runnable {
         @Override
         public void run() {
-            if (ActivityCompat.checkSelfPermission(LocationService.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                    && ActivityCompat.checkSelfPermission(LocationService.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling ActivityCompat#requestPermissions here to request the missing permissions
-                return;
+            try {
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            } catch (SecurityException e) {
+                // Handle the exception
             }
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
             handler.postDelayed(this, UPDATE_INTERVAL);
         }
     }
@@ -136,6 +161,5 @@ public class LocationService extends Service {
         return null;
     }
 }
-
 
 
