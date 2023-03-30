@@ -30,6 +30,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
@@ -67,8 +68,10 @@ public class MainActivity extends AppCompatActivity {
   //  private DatabaseReference FirbaseDatabase;
     private String phoneNo;
     private RadioGroup timeintervaloption;
-    private RadioButton radioButton5,radioButton15,radioButton30,radioButton45,radioButton60;
+    private RadioButton radioButton5,radioButton15,radioButton10,radioButtonoff,radioButton60;
     private Intent serviceIntent;
+    private  SharedPreferences sharedPreferences;
+
     private Handler handler = new Handler();
     private MediaType mediaType;
    // private RequestBody body;
@@ -83,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         speedTextView = (TextView) findViewById(R.id.speedText);
         TextView urphoneno = findViewById(R.id.ContactNumber);
         // Get an instance of SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
         // Get the saved "phoneno" value from SharedPreferences
@@ -92,68 +95,75 @@ public class MainActivity extends AppCompatActivity {
         //Radio Button
         timeintervaloption=findViewById(R.id.timeinterval);
         radioButton5=findViewById(R.id.radiobutton5);
+        radioButton10=findViewById(R.id.radiobutton10);
         radioButton15=findViewById(R.id.radiobutton15);
-        radioButton30=findViewById(R.id.radiobutton30);
-        radioButton45=findViewById(R.id.radiobutton45);
-        radioButton60=findViewById(R.id.radiobutton60);
+        radioButtonoff=findViewById(R.id.radiobuttonoff);
+        EditText phoneno=findViewById(R.id.phoneno);
+        Button submit=findViewById(R.id.submit);
+        // Set the default option to 15 min
 
-        // Set the default option to 15 seconds
-        // radioButton15.setChecked(true);
-        String selectedoption = sharedPreferences.getString("selectedoption", "15");
+        final String[] selectedoption = {sharedPreferences.getString("selectedoption", "15")};
         // Set the selected radio button based on the saved "selectedoption" value
-        switch (selectedoption) {
+//Set the selected radio button based on the saved "selectedoption" value
+        switch (selectedoption[0]) {
             case "5":
                 radioButton5.setChecked(true);
                 UPDATE_INTERVAL = 300000;
                 break;
-            case "30":
-                radioButton30.setChecked(true);
-                UPDATE_INTERVAL = 1800000;
+            case "10":
+                radioButton10.setChecked(true);
+                UPDATE_INTERVAL = 600000;
                 break;
-            case "45":
-                radioButton45.setChecked(true);
-                UPDATE_INTERVAL = 2700000;
-                break;
-            case "60":
-                radioButton60.setChecked(true);
-                UPDATE_INTERVAL = 3600000;
+            case "Off":
+                radioButtonoff.setChecked(true);
                 break;
             default:
                 radioButton15.setChecked(true); // Default option
+                UPDATE_INTERVAL = 900000;
                 break;
         }
-        timeintervaloption.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+//On Save Button Click
+        //On Save Button Click
+        submit.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(RadioGroup radioGroup, int i) {
-                String selectedoption = "";
-                switch (i) {
+            public void onClick(View view) {
+                String phone = phoneno.getText().toString();
+
+                if (phone.isEmpty() || phone.length() != 10) {
+                    phoneno.setError("Please enter a valid 10-digit phone number.");
+                    return;
+                }
+
+                //Get the selected radio button value
+                int selectedId = timeintervaloption.getCheckedRadioButtonId();
+                switch (selectedId) {
                     case R.id.radiobutton5:
+                        selectedoption[0] = "5";
                         UPDATE_INTERVAL = 300000;
-                        selectedoption = "5";
                         break;
-                    case R.id.radiobutton30:
-                        UPDATE_INTERVAL = 1800000;
-                        selectedoption = "30";
+                    case R.id.radiobutton10:
+                        selectedoption[0] = "10";
+                        UPDATE_INTERVAL = 600000;
                         break;
-                    case R.id.radiobutton45:
-                        UPDATE_INTERVAL = 2700000 ;
-                        selectedoption = "45";
-                        break;
-                    case R.id.radiobutton60:
-                        UPDATE_INTERVAL = 3600000;
-                        selectedoption = "60";
+                    case R.id.radiobuttonoff:
+                        selectedoption[0] = "Off";
                         break;
                     default:
-                        UPDATE_INTERVAL = 900000; // Default option
-                        selectedoption = "15";
+                        selectedoption[0] = "15"; // Default option
+                        UPDATE_INTERVAL = 900000;
                         break;
                 }
-                editor.putString("selectedoption", selectedoption);
+
+                //Save the selected radio button value and phone number to SharedPreferences
+                editor.putString("selectedoption", selectedoption[0]);
+                editor.putString("phone_number", phone);
                 editor.apply();
+
+                Toast.makeText(MainActivity.this, phone + " Interval: " + selectedoption[0], Toast.LENGTH_SHORT).show();
             }
         });
-//
-        Toast.makeText(this,"Your Location will update in every"+ String.valueOf(UPDATE_INTERVAL)+"m/s", Toast.LENGTH_SHORT).show();
+
+        //Toast.makeText(this,"Your Location will update in every"+ String.valueOf(UPDATE_INTERVAL)+"m/s", Toast.LENGTH_SHORT).show();
 
 /*
         String requestBodyString = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
@@ -178,7 +188,6 @@ public class MainActivity extends AppCompatActivity {
         startService(serviceIntent);*/
 
 
-        //FirbaseDatabase = FirebaseDatabase.getInstance().getReference();
 
       locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
@@ -226,6 +235,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void checkGpsStatus() {
+        String selectedOption = sharedPreferences.getString("selectedoption", "15");
+        if (selectedOption.equals("Off")) {
+            // If the selected option is "Off", skip the GPS check
+            return;
+        }
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Toast.makeText(MainActivity.this, "Please enable GPS", Toast.LENGTH_LONG).show();
             Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
