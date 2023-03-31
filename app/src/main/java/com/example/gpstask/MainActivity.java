@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_LOCATION = 123;
     private static final int GPS_CHECK_INTERVAL = 5000; // Check every 5 seconds
     private static final int REQUEST_LOCATION_PERMISSION =123 ;
+    private static final int PERMISSION_REQUEST_CODE =123 ;
     private static int UPDATE_INTERVAL = 60000; // Update every 1 minute
     private long lastUpdateTime = 0;
 
@@ -196,6 +197,15 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSIONS_REQUEST_LOCATION);
+        }
+        // Check if the permission has already been granted
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        PERMISSION_REQUEST_CODE);
+            }
         }
 
     }

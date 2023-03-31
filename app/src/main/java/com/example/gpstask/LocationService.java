@@ -6,6 +6,8 @@ import static android.content.Intent.getIntent;
 
 import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
 
+
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -35,6 +37,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -57,15 +60,20 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class LocationService extends Service implements LocationListener {
+    private static final int PERMISSION_REQUEST_CODE =123 ;
     private LocationManager locationManager;
     private PendingIntent locationPendingIntent;
-    private static final long LOCATION_UPDATE_INTERVAL = 60000; // 1 hour
+    private static final long LOCATION_UPDATE_INTERVAL = 60000; // 1 min
     private static final int NOTIFICATION_ID = 1;
+    private SharedPreferences sharedPreferences;
     private static final String NOTIFICATION_CHANNEL_ID = "LocationUpdatesChannel";
-
+    private static final OkHttpClient client = new OkHttpClient();
+    private static final String API_ENDPOINT = "https://api.tranzol.com/apiv1/PostLocation";
+    private Handler handler = new Handler();
     @Override
     public void onCreate() {
         super.onCreate();
+         sharedPreferences = getApplicationContext().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Intent locationIntent = new Intent(this, LocationReceiver.class);
         locationIntent.setAction("LOCATION_UPDATE");
@@ -90,6 +98,7 @@ public class LocationService extends Service implements LocationListener {
             notificationManager.createNotificationChannel(channel);
         }
 
+
         // Create the notification and show it
         Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle("TrackMe Updates")
@@ -113,14 +122,65 @@ public class LocationService extends Service implements LocationListener {
 
     @Override
     public void onLocationChanged(Location location) {
-
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+        String phoneNo = sharedPreferences.getString("phone_number", "");
         // Post the location to the server
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
         float speed = location.getSpeed();
+        //
+        // Schedule the API request to be sent in the next time interval
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Prepare the request body with the location data
+                RequestBody body = new FormBody.Builder()
+                        .add("ph", phoneNo)
+                        .add("lt", Double.toString(latitude))
+                        .add("lg", Double.toString(longitude))
+                        .add("sp", Float.toString(speed))
+                        .add("dv", "dvValue")
+                        .build();
+                // Build request
+                Request request = new Request.Builder()
+                        .url("https://api.tranzol.com/apiv1/PostLocation")
+                        .post(body)
+                        .addHeader("content-type", "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW")
+                        .addHeader("clientid", "TRANZOLGPS")
+                        .addHeader("clientsecret", "TRANZOLBO436535345SS2238RC")
+                        .build();
+
+                // Execute the request asynchronously
+                client.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        e.printStackTrace();
+                        Notification notification = new NotificationCompat.Builder(LocationService.this, NOTIFICATION_CHANNEL_ID)
+                                .setContentTitle("Failed")
+
+                                .setSmallIcon(R.mipmap.ic_launcher_round)
+                                .build();
+                        startForeground(NOTIFICATION_ID, notification);
+                    }
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        // Do something with the response...
+                        Notification notification = new NotificationCompat.Builder(LocationService.this, NOTIFICATION_CHANNEL_ID)
+                                .setContentTitle("Passed")
+
+                                .setSmallIcon(R.mipmap.ic_launcher_round)
+                                .build();
+                        startForeground(NOTIFICATION_ID, notification);
+
+                    }
+                });
+            }
+        }, LOCATION_UPDATE_INTERVAL);
+
         Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setContentTitle("Location send")
-                .setContentText(" sent changed.")
+                .setContentTitle("lattitude: "+latitude+"Longititude: "+longitude)
+                .setContentText("your"+phoneNo+" sent changed.")
                 .setSmallIcon(R.mipmap.ic_launcher_round)
                 .build();
         startForeground(NOTIFICATION_ID, notification);
