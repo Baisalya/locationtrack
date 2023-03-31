@@ -81,8 +81,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Intent intent = new Intent(this, LocationService.class);
-        startService(intent);
+        startbgservice();
+
         latitudeTextView = (TextView) findViewById(R.id.lattitude);
         longitudeTextView = (TextView) findViewById(R.id.longitutde);
         speedTextView = (TextView) findViewById(R.id.speedText);
@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         switch (selectedoption[0]) {
             case "5":
                 radioButton5.setChecked(true);
-                UPDATE_INTERVAL = 100000;
+                UPDATE_INTERVAL = 60000;
                 break;
             case "10":
                 radioButton10.setChecked(true);
@@ -141,10 +141,13 @@ public class MainActivity extends AppCompatActivity {
                     case R.id.radiobutton5:
                         selectedoption[0] = "5";
                         UPDATE_INTERVAL = 100000;
+                        startbgservice();
+
                         break;
                     case R.id.radiobutton10:
                         selectedoption[0] = "10";
                         UPDATE_INTERVAL = 600000;
+                        startbgservice();
                         break;
                     case R.id.radiobuttonoff:
                         selectedoption[0] = "Off";
@@ -152,12 +155,13 @@ public class MainActivity extends AppCompatActivity {
                     default:
                         selectedoption[0] = "15"; // Default option
                         UPDATE_INTERVAL = 900000;
+                        startbgservice();
                         break;
                 }
 
                 //Save the selected radio button value and phone number to SharedPreferences
                 editor.putString("selectedoption", selectedoption[0]);
-                editor.putLong("updateInterval", UPDATE_INTERVAL);
+                editor.putInt("updateInterval", UPDATE_INTERVAL);
                 editor.putString("phone_number", phone);
                 editor.apply();
                 //updateInterval = sharedPreferences.getLong("updateInterval", 900000);
@@ -173,27 +177,9 @@ public class MainActivity extends AppCompatActivity {
         //String lala= Long.toString(updateInterval);
         //Toast.makeText(this, lala, Toast.LENGTH_SHORT).show();
         urphoneno.setText("Tracking no is:" + phoneNo);
-/*
-        String requestBodyString = "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
-                "Content-Disposition: form-data; name=\"lt\"\r\n\r\n" +
-                latitudeTextView + "\r\n" +
-                "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
-                "Content-Disposition: form-data; name=\"lg\"\r\n\r\n" +
-                longitudeTextView + "\r\n" +
-                "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
-                "Content-Disposition: form-data; name=\"sp\"\r\n\r\n" +
-                speedTextView + "\r\n" +
-                "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
-                "Content-Disposition: form-data; name=\"ph\"\r\n\r\n" +
-                phoneNo + "\r\n" +
-                "------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n" +
-                "Content-Disposition: form-data; name=\"dv\"\r\n\r\n" +
-                "dvValue" + "\r\n" +
-                "------WebKitFormBoundary7MA4YWxkTrZu0gW--";*/
 
-   /*     Intent serviceIntent = new Intent(MainActivity.this, LocationService.class);
-        serviceIntent.putExtra("phone_number", phoneNumber);
-        startService(serviceIntent);*/
+
+
 
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -204,10 +190,12 @@ public class MainActivity extends AppCompatActivity {
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSIONS_REQUEST_LOCATION);
         }
-        //
-       /* serviceIntent=new Intent(MainActivity.this,LocationService.class);
-        serviceIntent.putExtra("phone_number", phoneNo);*/
-        //startservice();
+
+    }
+
+    private void startbgservice() {
+        Intent intent = new Intent(this, LocationService.class);
+       startService(intent);
     }
 
 
@@ -230,22 +218,24 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         handler.removeCallbacks(runnable);
     }
-    @Override
+ /*   @Override
     protected void onDestroy() {
         super.onDestroy();
         startservice();
-    }
-    private void startservice() {
+    }*/
+    /*private void startservice() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
         } else {
             startService(serviceIntent);
         }
-    }
+    }*/
     private void checkGpsStatus() {
         String selectedOption = sharedPreferences.getString("selectedoption", "15");
         if (selectedOption.equals("Off")) {
             // If the selected option is "Off", skip the GPS check
+            Intent intent = new Intent(this, LocationService.class);
+            stopService(intent);
             return;
         }
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -272,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
                     longitudeTextView.setText("Longitude: " + longitude);
                     speedTextView.setText("Speed: " + speed + " m/s");
                     //Toast.makeText(MainActivity.this, phoneNo, Toast.LENGTH_SHORT).show();
-                     Handler handler = new Handler();
+               /*      Handler handler = new Handler();
                     Runnable runnable = new Runnable() {
                         @Override
                         public void run() {
@@ -311,10 +301,10 @@ public class MainActivity extends AppCompatActivity {
                             handler.postDelayed(this, updateInterval);
                         }
                     };
-                    handler.postDelayed(runnable, updateInterval);
+                    handler.postDelayed(runnable, updateInterval);*/
                     // Update api every UPDATE_INTERVAL milliseconds
 
-     if (System.currentTimeMillis() - lastUpdateTime >= UPDATE_INTERVAL || lastUpdateTime == 0){
+   /*  if (System.currentTimeMillis() - lastUpdateTime >= UPDATE_INTERVAL || lastUpdateTime == 0){
                         lastUpdateTime = System.currentTimeMillis();
                         // Create location data object
                        // LocationModel locationData = new LocationModel(latitude, longitude, speed);
@@ -324,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
                         //Toast.makeText(MainActivity.this, phoneNo, Toast.LENGTH_SHORT).show();
                         // Build request body
 
-                    }
+                    }*/
 
                 }
             });
