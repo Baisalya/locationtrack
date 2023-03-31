@@ -45,7 +45,7 @@
         </receiver>-->
 
         <receiver
-            android:name=".BootReceiver"
+            android:name=".LocationReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

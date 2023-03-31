@@ -6,7 +6,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
+import android.app.AlarmManager;
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.Context;
 
 import android.content.Intent;
@@ -15,6 +17,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -58,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_LOCATION = 123;
     private static final int GPS_CHECK_INTERVAL = 5000; // Check every 5 seconds
+    private static final int REQUEST_LOCATION_PERMISSION =123 ;
     private static int UPDATE_INTERVAL = 60000; // Update every 1 minute
     private long lastUpdateTime = 0;
 
@@ -81,7 +85,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        startbgservice();
+        Intent locationIntent = new Intent(this, LocationReceiver.class);
+        locationIntent.setAction("LOCATION_UPDATE");
+        PendingIntent locationPendingIntent = PendingIntent.getBroadcast(this, 0, locationIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+        AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), UPDATE_INTERVAL, locationPendingIntent);
 
         latitudeTextView = (TextView) findViewById(R.id.lattitude);
         longitudeTextView = (TextView) findViewById(R.id.longitutde);
@@ -104,7 +112,6 @@ public class MainActivity extends AppCompatActivity {
         // Set the default option to 15 min
 
         final String[] selectedoption = {sharedPreferences.getString("selectedoption", "15")};
-        // Set the selected radio button based on the saved "selectedoption" value
 //Set the selected radio button based on the saved "selectedoption" value
         switch (selectedoption[0]) {
             case "5":
@@ -171,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //Toast.makeText(this,"Your Location will update in every"+ String.valueOf(UPDATE_INTERVAL)+"m/s", Toast.LENGTH_SHORT).show();
+
         phoneNo = sharedPreferences.getString("phone_number", "");
         updateInterval = sharedPreferences.getLong("updateIntervals", 900000);
         //String lala= Long.toString(updateInterval);
@@ -192,10 +199,18 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_LOCATION_PERMISSION && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startbgservice();
+        }
+    }
 
     private void startbgservice() {
         Intent intent = new Intent(this, LocationService.class);
-       startService(intent);
+        startService(intent);
     }
 
 
@@ -218,11 +233,11 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         handler.removeCallbacks(runnable);
     }
- /*   @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        startservice();
-    }*/
+    /*   @Override
+       protected void onDestroy() {
+           super.onDestroy();
+           startservice();
+       }*/
     /*private void startservice() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
