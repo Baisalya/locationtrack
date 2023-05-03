@@ -243,11 +243,11 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         handler.removeCallbacks(runnable);
     }
-    /*   @Override
+       @Override
        protected void onDestroy() {
            super.onDestroy();
-           startservice();
-       }*/
+           startService(new Intent(this, LocationService.class));
+       }
     /*private void startservice() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
